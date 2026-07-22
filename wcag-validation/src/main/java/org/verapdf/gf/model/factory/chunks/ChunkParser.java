@@ -141,10 +141,25 @@ public class ChunkParser {
 					if (isProcessColorSpace(this.graphicsState.getFillColorSpace())) {
 						Double fillColor = getValueOfLastNumber(arguments);
 						if (fillColor != null) {
-							this.graphicsState.setFillColor(new double[]{fillColor});
+							this.graphicsState.setFillColor(PDDeviceGray.INSTANCE.toRGB(new double[]{fillColor}));
 						}
 					} else {
-						this.graphicsState.setFillColor(new double[0]);
+						this.graphicsState.setFillColor(null);
+					}
+				}
+				break;
+			}
+			case Operators.G_STROKE: {
+				if (this.graphicsState.isProcessColorOperators()) {
+					processColorSpace(this.graphicsState, resourceHandler, PDDeviceGray.INSTANCE,
+					                  ASAtom.DEVICEGRAY, true);
+					if (isProcessColorSpace(this.graphicsState.getStrokeColorSpace())) {
+						Double strokeColor = getValueOfLastNumber(arguments);
+						if (strokeColor != null) {
+							this.graphicsState.setStrokeColor(PDDeviceGray.INSTANCE.toRGB(new double[]{strokeColor}));
+						}
+					} else {
+						this.graphicsState.setStrokeColor(null);
 					}
 				}
 				break;
@@ -160,7 +175,23 @@ public class ChunkParser {
 							                                             arguments.get(1).getReal(), arguments.get(2).getReal()});
 						}
 					} else {
-						this.graphicsState.setFillColor(new double[0]);
+						this.graphicsState.setFillColor(null);
+					}
+				}
+				break;
+			}
+			case Operators.RG_STROKE: {
+				if (this.graphicsState.isProcessColorOperators()) {
+					processColorSpace(this.graphicsState, resourceHandler, PDDeviceRGB.INSTANCE,
+					                  ASAtom.DEVICERGB, true);
+					if (isProcessColorSpace(this.graphicsState.getStrokeColorSpace())) {
+						if (arguments.size() == 3 && arguments.get(0).getType().isNumber() &&
+						    arguments.get(1).getType().isNumber() && arguments.get(2).getType().isNumber()) {
+							this.graphicsState.setStrokeColor(new double[]{arguments.get(0).getReal(),
+							                                             arguments.get(1).getReal(), arguments.get(2).getReal()});
+						}
+					} else {
+						this.graphicsState.setStrokeColor(null);
 					}
 				}
 				break;
@@ -173,11 +204,30 @@ public class ChunkParser {
 						if (arguments.size() == 4 && arguments.get(0).getType().isNumber() &&
 						    arguments.get(1).getType().isNumber() && arguments.get(2).getType().isNumber() &&
 						    arguments.get(3).getType().isNumber()) {
-							this.graphicsState.setFillColor(new double[]{arguments.get(0).getReal(), arguments.get(1).getReal(),
-							                                             arguments.get(2).getReal(), arguments.get(3).getReal()});
+							this.graphicsState.setFillColor(PDDeviceCMYK.INSTANCE.toRGB(new double[]{
+												arguments.get(0).getReal(), arguments.get(1).getReal(),
+												arguments.get(2).getReal(), arguments.get(3).getReal()}));
 						}
 					} else {
-						this.graphicsState.setFillColor(new double[0]);
+						this.graphicsState.setFillColor(null);
+					}
+				}
+				break;
+			}
+			case Operators.K_STROKE: {
+				if (this.graphicsState.isProcessColorOperators()) {
+					processColorSpace(this.graphicsState, resourceHandler, PDDeviceCMYK.INSTANCE,
+					                  ASAtom.DEVICECMYK, true);
+					if (isProcessColorSpace(this.graphicsState.getStrokeColorSpace())) {
+						if (arguments.size() == 4 && arguments.get(0).getType().isNumber() &&
+						    arguments.get(1).getType().isNumber() && arguments.get(2).getType().isNumber() &&
+						    arguments.get(3).getType().isNumber()) {
+							this.graphicsState.setStrokeColor(PDDeviceCMYK.INSTANCE.toRGB(new double[]{
+												arguments.get(0).getReal(), arguments.get(1).getReal(),
+												arguments.get(2).getReal(), arguments.get(3).getReal()}));
+						}
+					} else {
+						this.graphicsState.setStrokeColor(null);
 					}
 				}
 				break;
@@ -207,7 +257,36 @@ public class ChunkParser {
 							LOGGER.log(Level.WARNING, "Error setting fill color with scn operator", e);
 						}
 					} else {
-						this.graphicsState.setFillColor(new double[0]);
+						this.graphicsState.setFillColor(null);
+					}
+				}
+				break;
+			case Operators.SCN_STROKE:
+				if (this.graphicsState.isProcessColorOperators()) {
+					PDColorSpace colorSpace = this.graphicsState.getStrokeColorSpace();
+					if (isProcessColorSpace(colorSpace)) {
+						try {
+							int size = arguments.size();
+							if (!arguments.get(size - 1).getType().isNumber()) {
+								size--;
+							}
+							double[] colorArguments = new double[size];
+							boolean areNumbers = true;
+							for (int i = 0; i < size; ++i) {
+								if (!arguments.get(i).getType().isNumber()) {
+									areNumbers = false;
+									break;
+								}
+								colorArguments[i] = arguments.get(i).getReal();
+							}
+							if (areNumbers) {
+								this.graphicsState.setStrokeColor(colorSpace.toRGB(colorArguments));
+							}
+						} catch (Exception e) {
+							LOGGER.log(Level.WARNING, "Error setting stroke color with SCN operator", e);
+						}
+					} else {
+						this.graphicsState.setStrokeColor(null);
 					}
 				}
 				break;
@@ -236,13 +315,47 @@ public class ChunkParser {
 							LOGGER.log(Level.WARNING, "Error setting fill color with sc operator", e);
 						}
 					} else {
-						this.graphicsState.setFillColor(new double[0]);
+						this.graphicsState.setFillColor(null);
+					}
+				}
+				break;
+			case Operators.SC_STROKE:
+				if (this.graphicsState.isProcessColorOperators()) {
+					PDColorSpace colorSpace = this.graphicsState.getStrokeColorSpace();
+					ASAtom colorSpaceType = colorSpace != null ? colorSpace.getType() : null;
+					if (ASAtom.DEVICERGB.equals(colorSpaceType) || ASAtom.DEVICEGRAY.equals(colorSpaceType) ||
+							ASAtom.DEVICECMYK.equals(colorSpaceType) || ASAtom.CALRGB.equals(colorSpaceType) ||
+							ASAtom.CALGRAY.equals(colorSpaceType) || ASAtom.INDEXED.equals(colorSpaceType) ||
+							ASAtom.LAB.equals(colorSpaceType) || ASAtom.ICCBASED.equals(colorSpaceType)) {
+						try {
+							double[] colorArguments = new double[arguments.size()];
+							boolean areNumbers = true;
+							for (int i = 0; i < arguments.size(); ++i) {
+								if (!arguments.get(i).getType().isNumber()) {
+									areNumbers = false;
+									break;
+								}
+								colorArguments[i] = arguments.get(i).getReal();
+							}
+							if (areNumbers) {
+								this.graphicsState.setStrokeColor(colorSpace.toRGB(colorArguments));
+							}
+						} catch (Exception e) {
+							LOGGER.log(Level.WARNING, "Error setting stroke color with SC operator", e);
+						}
+					} else {
+						this.graphicsState.setStrokeColor(null);
 					}
 				}
 				break;
 			case Operators.CS_FILL:
 				if (this.graphicsState.isProcessColorOperators()) {
 					this.graphicsState.setFillColorSpace(resourceHandler.getColorSpace(getLastCOSName(arguments)));
+				}
+				break;
+			case Operators.CS_STROKE:
+				if (this.graphicsState.isProcessColorOperators()) {
+					this.graphicsState.setStrokeColorSpace(resourceHandler.getColorSpace(getLastCOSName(arguments)));
 				}
 				break;
 			case Operators.ET:
@@ -419,7 +532,7 @@ public class ChunkParser {
 					double y = arguments.get(1).getReal();
 					if (!NodeUtils.areCloseNumbers(path.getCurrentX(), x) || !NodeUtils.areCloseNumbers(path.getCurrentY(), y)) {
 						nonDrawingArtifacts.add(new LineChunk(pageNumber, path.getCurrentX(), path.getCurrentY(),
-								x, y, graphicsState.getLineWidth()));
+								x, y, graphicsState.getLineWidth(), graphicsState.getStrokeColor()));
 					}
 					path.setCurrentPoint(x, y);
 				}
@@ -599,7 +712,7 @@ public class ChunkParser {
 		if (!NodeUtils.areCloseNumbers(path.getStartX(), path.getCurrentX()) ||
 				!NodeUtils.areCloseNumbers(path.getStartY(), path.getCurrentY())) {
 			nonDrawingArtifacts.add(new LineChunk(pageNumber, path.getCurrentX(), path.getCurrentY(),
-					path.getStartX(), path.getStartY(), graphicsState.getLineWidth()));
+					path.getStartX(), path.getStartY(), graphicsState.getLineWidth(), graphicsState.getStrokeColor()));
 		}
 		path.setCurrentPoint(path.getStartX(), path.getStartY());
 	}
@@ -621,7 +734,7 @@ public class ChunkParser {
 						graphicsState.getLineWidth());
 				processBoundingBox(boundingBox, mcid, curveChunk.getBoundingBox());
 			} else if (chunk instanceof Rectangle) {
-				LineChunk line = ((Rectangle)chunk).getLine(graphicsState.getLineWidth());
+				LineChunk line = ((Rectangle)chunk).getLine(graphicsState.getLineWidth(), graphicsState.getStrokeColor());
 				if (line != null) {
 					LineChunk line1 = transformLineChunk(line, line.getWidth(), LineChunk.PROJECTING_SQUARE_CAP_STYLE);
 					processLineChunk(boundingBox, mcid, line1);
@@ -654,13 +767,13 @@ public class ChunkParser {
 				Rectangle rectangle = (Rectangle) chunk;
 				if (rectangle.getHeight() < graphicsState.getLineWidth() ||
 						rectangle.getWidth() < graphicsState.getLineWidth()) {
-					LineChunk line = rectangle.getLine(graphicsState.getLineWidth());
+					LineChunk line = rectangle.getLine(graphicsState.getLineWidth(), graphicsState.getStrokeColor());
 					if (line != null) {
 						LineChunk line1 = transformLineChunk(line, line.getWidth(), LineChunk.PROJECTING_SQUARE_CAP_STYLE);
 						processLineChunk(boundingBox, mcid, line1);
 					}
 				} else {
-					List<LineChunk> lines = rectangle.getLines(graphicsState.getLineWidth());
+					List<LineChunk> lines = rectangle.getLines(graphicsState.getLineWidth(), graphicsState.getStrokeColor());
 					for (LineChunk line : lines) {
 						LineChunk line1 = transformLineChunk(line, graphicsState.getLineWidth(), LineChunk.PROJECTING_SQUARE_CAP_STYLE);
 						processLineChunk(boundingBox, mcid, line1);
@@ -684,13 +797,13 @@ public class ChunkParser {
 		for (int i = 0; i < nonDrawingArtifacts.size(); i++) {
 			Object chunk = nonDrawingArtifacts.get(i);
 			if (chunk instanceof Rectangle) {
-				LineChunk line = ((Rectangle)chunk).getLine(0);
+				LineChunk line = ((Rectangle)chunk).getLine(0, graphicsState.getFillColor());
 				if (line != null) {
 					LineChunk line1 = transformLineChunk(line, line.getWidth(), LineChunk.PROJECTING_SQUARE_CAP_STYLE);
 					processLineChunk(boundingBox, mcid, line1);
 				}
 			} else if (chunk instanceof LineChunk) {
-				LineChunk line = parsingRectangleFromLines(i);
+				LineChunk line = parsingRectangleFromLines(i, graphicsState.getFillColor());
 				if (line != null) {
 					processLineChunk(boundingBox, mcid, line);
 					i += 3;
@@ -726,7 +839,7 @@ public class ChunkParser {
 		}
 	}
 
-	private LineChunk parsingRectangleFromLines(int i) {
+	private LineChunk parsingRectangleFromLines(int i, double[] color) {
 		LineChunk line1 = (LineChunk) nonDrawingArtifacts.get(i);
 		if ((i < nonDrawingArtifacts.size() - 3) && (nonDrawingArtifacts.get(i + 1) instanceof LineChunk) &&
 				(nonDrawingArtifacts.get(i + 2) instanceof LineChunk) &&
@@ -740,22 +853,26 @@ public class ChunkParser {
 					Vertex.areCloseVertexes(line4.getEnd(), line1.getStart())) {
 				if (isHorizontalLine(line1, line2, line3, line4)) {
 					LineChunk line = new LineChunk(pageNumber, line2.getCenterX(), line2.getCenterY(),
-							line4.getCenterX(), line4.getCenterY(), Math.abs(line1.getCenterY() - line3.getCenterY()));
+							line4.getCenterX(), line4.getCenterY(), Math.abs(line1.getCenterY() - line3.getCenterY()),
+							color);
 					return transformLineChunk(line, line.getWidth(), LineChunk.BUTT_CAP_STYLE);
 				}
 				if (isVerticalLine(line1, line2, line3, line4)) {
 					LineChunk line = new LineChunk(pageNumber, line2.getCenterX(), line2.getCenterY(),
-							line4.getCenterX(), line4.getCenterY(), Math.abs(line1.getCenterX() - line3.getCenterX()));
+							line4.getCenterX(), line4.getCenterY(), Math.abs(line1.getCenterX() - line3.getCenterX()),
+							color);
 					return transformLineChunk(line, line.getWidth(), LineChunk.BUTT_CAP_STYLE);
 				}
 				if (isHorizontalLine(line2, line1, line4, line3)) {
 					LineChunk line = new LineChunk(pageNumber, line1.getCenterX(), line1.getCenterY(),
-							line3.getCenterX(), line3.getCenterY(), Math.abs(line2.getCenterY() - line4.getCenterY()));
+							line3.getCenterX(), line3.getCenterY(), Math.abs(line2.getCenterY() - line4.getCenterY()),
+							color);
 					return transformLineChunk(line, line.getWidth(), LineChunk.BUTT_CAP_STYLE);
 				}
 				if (isVerticalLine(line2, line1, line4, line3)) {
 					LineChunk line = new LineChunk(pageNumber, line1.getCenterX(), line1.getCenterY(),
-							line3.getCenterX(), line3.getCenterY(), Math.abs(line2.getCenterX() - line4.getCenterX()));
+							line3.getCenterX(), line3.getCenterY(), Math.abs(line2.getCenterX() - line4.getCenterX()),
+							color);
 					return transformLineChunk(line, line.getWidth(), LineChunk.BUTT_CAP_STYLE);
 				}
 			}
@@ -1027,12 +1144,15 @@ public class ChunkParser {
     }
 
 	private LineChunk transformLineChunk(LineChunk lineChunk, double lineWidth, int lineCap) {
+		// Preserve the original LineChunk's strokeColor; GraphicsState's strokeColor is also a
+		// reasonable fallback for paths built from l/m/h segments without an explicit color.
+		double[] color = lineChunk.getStrokeColor();
 		return LineChunk.createLineChunk(pageNumber,
 				graphicsState.getCTM().transformX(lineChunk.getStartX(), lineChunk.getStartY()),
 				graphicsState.getCTM().transformY(lineChunk.getStartX(), lineChunk.getStartY()),
 				graphicsState.getCTM().transformX(lineChunk.getEndX(), lineChunk.getEndY()),
 				graphicsState.getCTM().transformY(lineChunk.getEndX(), lineChunk.getEndY()),
-				lineWidth * graphicsState.getCTM().getScaleValue(), lineCap);
+				lineWidth * graphicsState.getCTM().getScaleValue(), lineCap, color);
 	}
 
 	private static void processColorSpace(GraphicsState graphicState, ResourceHandler resourcesHandler,
@@ -1041,7 +1161,9 @@ public class ChunkParser {
 		if (colorSpace == null) {
 			colorSpace = defaultCS;
 		}
-		if (!stroke) {
+		if (stroke) {
+			graphicState.setStrokeColorSpace(colorSpace);
+		} else {
 			graphicState.setFillColorSpace(colorSpace);
 		}
 	}

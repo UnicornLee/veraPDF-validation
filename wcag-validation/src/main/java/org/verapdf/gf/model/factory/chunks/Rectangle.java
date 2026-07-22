@@ -45,23 +45,31 @@ public class Rectangle {
     }
 
     public List<LineChunk> getLines(double lineWidth) {
+        return getLines(lineWidth, null);
+    }
+
+    public List<LineChunk> getLines(double lineWidth, double[] strokeColor) {
         List<LineChunk> lines = new LinkedList<>();
-        lines.add(new LineChunk(pageNumber, x, y, x + width, y, lineWidth));
-        lines.add(new LineChunk(pageNumber, x, y, x, y + height, lineWidth));
-        lines.add(new LineChunk(pageNumber, x + width, y, x + width, y + height, lineWidth));
-        lines.add(new LineChunk(pageNumber, x, y + height, x + width, y + height, lineWidth));
+        lines.add(new LineChunk(pageNumber, x, y, x + width, y, lineWidth, strokeColor));
+        lines.add(new LineChunk(pageNumber, x, y, x, y + height, lineWidth, strokeColor));
+        lines.add(new LineChunk(pageNumber, x + width, y, x + width, y + height, lineWidth, strokeColor));
+        lines.add(new LineChunk(pageNumber, x, y + height, x + width, y + height, lineWidth, strokeColor));
         return lines;
     }
 
     public LineChunk getLine(double lineWidth) {
+        return getLine(lineWidth, null);
+    }
+
+    public LineChunk getLine(double lineWidth, double[] strokeColor) {
         if (width < height) {
             double lineX = x + 0.5 * width;
             return new LineChunk(pageNumber, lineX, y + 0.5 * width, lineX, y + height - 0.5 * width,
-                    width + lineWidth);
+                    width + lineWidth, strokeColor);
         }
         double lineY = y + 0.5 * height;
         return new LineChunk(pageNumber, x + 0.5 * height, lineY, x + width - 0.5 * height, lineY,
-                height + lineWidth);
+                height + lineWidth, strokeColor);
     }
 
     public double getWidth() {

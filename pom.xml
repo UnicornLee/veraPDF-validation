@@ -33,7 +33,7 @@
 
   <groupId>org.verapdf</groupId>
   <artifactId>validation</artifactId>
-  <version>1.31.0-SNAPSHOT</version>
+  <version>1.31.99</version>
   <packaging>pom</packaging>
 
   <name>veraPDF Validation Project</name>

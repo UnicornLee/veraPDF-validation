@@ -35,8 +35,10 @@ public class GraphicsState implements Cloneable {
 
 	private Matrix CTM = new Matrix();
 	private TextState textState = new TextState();
-	private double[] fillColor = new double[]{0};
+	private double[] fillColor = new double[]{0, 0, 0};
 	private PDColorSpace fillColorSpace;
+	private double[] strokeColor = new double[]{0, 0, 0};
+	private PDColorSpace strokeColorSpace;
 	private boolean processColorOperators = true;
 	private double lineWidth = 1.0;
 	private int lineCap = LineChunk.BUTT_CAP_STYLE;
@@ -47,6 +49,7 @@ public class GraphicsState implements Cloneable {
 
 	public GraphicsState(ResourceHandler resourceHandler) {
 		this.fillColorSpace = resourceHandler.getColorSpace(ASAtom.DEVICEGRAY);
+		this.strokeColorSpace = resourceHandler.getColorSpace(ASAtom.DEVICEGRAY);
 	}
 
 	public PDColorSpace getFillColorSpace() {
@@ -55,6 +58,14 @@ public class GraphicsState implements Cloneable {
 
 	public void setFillColorSpace(PDColorSpace fillColorSpace) {
 		this.fillColorSpace = fillColorSpace;
+	}
+
+	public PDColorSpace getStrokeColorSpace() {
+		return strokeColorSpace;
+	}
+
+	public void setStrokeColorSpace(PDColorSpace strokeColorSpace) {
+		this.strokeColorSpace = strokeColorSpace;
 	}
 
 	public boolean isProcessColorOperators() {
@@ -86,7 +97,15 @@ public class GraphicsState implements Cloneable {
 	}
 
 	public void setFillColor(double[] fillColor) {
-		this.fillColor = fillColor.clone();
+		this.fillColor = fillColor == null ? null : fillColor.clone();
+	}
+
+	public double[] getStrokeColor() {
+		return strokeColor;
+	}
+
+	public void setStrokeColor(double[] strokeColor) {
+		this.strokeColor = strokeColor == null ? null : strokeColor.clone();
 	}
 
 	public double getLineWidth() {
@@ -110,6 +129,8 @@ public class GraphicsState implements Cloneable {
 		this.textState = graphicState.getTextState();
 		this.fillColor = graphicState.getFillColor();
 		this.fillColorSpace = graphicState.getFillColorSpace();
+		this.strokeColor = graphicState.getStrokeColor();
+		this.strokeColorSpace = graphicState.getStrokeColorSpace();
 		this.processColorOperators = graphicState.isProcessColorOperators();
 		this.lineWidth = graphicState.getLineWidth();
 		this.lineCap = graphicState.getLineCap();
@@ -135,6 +156,8 @@ public class GraphicsState implements Cloneable {
 		clone.textState = this.textState.clone();
 		clone.fillColor = this.fillColor;
 		clone.fillColorSpace = this.fillColorSpace;
+		clone.strokeColor = this.strokeColor;
+		clone.strokeColorSpace = this.strokeColorSpace;
 		clone.processColorOperators = this.processColorOperators;
 		clone.lineWidth = this.lineWidth;
 		clone.lineCap = this.lineCap;
