@@ -67,6 +67,25 @@ public class ChunkParser {
 	public static final String REPLACEMENT_CHARACTER_STRING = "\uFFFD";
     public static final Map<String, String> fontNameToFontFamilyMap = new HashMap<>();
 
+	/**
+	 * Maximum thickness, in points of the final (CTM applied) coordinate space, of a stripe that
+	 * is collapsed into a single line carrying that thickness. Thicker quadrilaterals are kept as
+	 * regular outlines, so ordinary boxes, icons and filled shapes are not affected.
+	 */
+	private static final double MAX_STRIPE_THICKNESS = 3.0;
+
+	/**
+	 * A quadrilateral is only treated as a stripe when the distance between its two parallel long
+	 * edges is at most this fraction of the long edge length.
+	 */
+	private static final double MAX_STRIPE_THICKNESS_TO_LENGTH_RATIO = 0.2;
+
+	/**
+	 * A quadrilateral is only treated as a stripe when the edges joining the two long edges are no
+	 * longer than this multiple of the stripe thickness (a 45 degree mitre gives about 1.41).
+	 */
+	private static final double MAX_STRIPE_JOINING_EDGE_FACTOR = 2.5;
+
 	private final Deque<GraphicsState> graphicsStateStack = new ArrayDeque<>();
 	private final Stack<Long> markedContentStack = new Stack<>();
     private final Stack<Boolean> visibleContentStack = new Stack<Boolean>();
@@ -754,8 +773,16 @@ public class ChunkParser {
         }
 		Long mcid = getMarkedContent();
 		BoundingBox boundingBox = new MultiBoundingBox();
-		for (Object chunk : nonDrawingArtifacts) {
+		for (int i = 0; i < nonDrawingArtifacts.size(); i++) {
+			Object chunk = nonDrawingArtifacts.get(i);
 			if (chunk instanceof LineChunk) {
+				int[] consumed = new int[1];
+				LineChunk stripe = parsingStripeFromLines(i, consumed);
+				if (stripe != null) {
+					processLineChunk(boundingBox, mcid, stripe);
+					i += consumed[0] - 1;
+					continue;
+				}
 				LineChunk lineChunk = transformLineChunk((LineChunk)chunk, graphicsState.getLineWidth(),
 						graphicsState.getLineCap());
 				processLineChunk(boundingBox, mcid, lineChunk);
@@ -878,6 +905,93 @@ public class ChunkParser {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Recognizes a thin quadrilateral ("stripe") stroked as one path and collapses it into a single
+	 * line carrying the thickness of the stripe.
+	 *
+	 * <p>Some producers (Word/WPS exports in particular) draw a table border as a very thin
+	 * quadrilateral that is stroked with a hairline width, e.g.
+	 * {@code m (outer edge) l (outer edge) l (inner edge) l (inner edge) f* w 0 S}. Stroking that
+	 * path emits one LineChunk per edge, so a single 0.5pt border becomes two parallel lines about
+	 * 0.5pt apart. Table recognition then reads each border as two separate row/column boundaries
+	 * and reports an extra empty column and row at every border.</p>
+	 *
+	 * <p>The polygon is matched either with an explicit closing edge (four consecutive LineChunks,
+	 * as produced by {@code s} which first appends the closing edge through {@link #processh()}) or
+	 * without one (three consecutive LineChunks; the closing edge is then implied).</p>
+	 *
+	 * @param i index of the first LineChunk of the candidate stripe
+	 * @param consumed receives the number of consecutive chunks that form the stripe
+	 * @return the collapsed line in final coordinates, or null when the chunks do not form a stripe
+	 */
+	private LineChunk parsingStripeFromLines(int i, int[] consumed) {
+		if (i + 2 >= nonDrawingArtifacts.size()) {
+			return null;
+		}
+		LineChunk line1 = asLineChunk(nonDrawingArtifacts.get(i));
+		LineChunk line2 = asLineChunk(nonDrawingArtifacts.get(i + 1));
+		LineChunk line3 = asLineChunk(nonDrawingArtifacts.get(i + 2));
+		if (line1 == null || line2 == null || line3 == null ||
+				!Vertex.areCloseVertexes(line1.getEnd(), line2.getStart()) ||
+				!Vertex.areCloseVertexes(line2.getEnd(), line3.getStart())) {
+			return null;
+		}
+		LineChunk line4 = null;
+		boolean explicitClosingEdge = false;
+		if (i + 3 < nonDrawingArtifacts.size()) {
+			LineChunk candidate = asLineChunk(nonDrawingArtifacts.get(i + 3));
+			if (candidate != null && Vertex.areCloseVertexes(line3.getEnd(), candidate.getStart()) &&
+					Vertex.areCloseVertexes(candidate.getEnd(), line1.getStart())) {
+				line4 = candidate;
+				explicitClosingEdge = true;
+			}
+		}
+		if (line4 == null) {
+			line4 = new LineChunk(pageNumber, line3.getEndX(), line3.getEndY(),
+					line1.getStartX(), line1.getStartY(), line3.getWidth());
+		}
+		boolean horizontal = line1.isHorizontalLine() && line3.isHorizontalLine();
+		boolean vertical = line1.isVerticalLine() && line3.isVerticalLine();
+		if (!horizontal && !vertical) {
+			return null;
+		}
+		double thickness = horizontal ? Math.abs(line1.getCenterY() - line3.getCenterY()) :
+				Math.abs(line1.getCenterX() - line3.getCenterX());
+		double length = Math.max(getLineLength(line1, horizontal), getLineLength(line3, horizontal));
+		double scale = graphicsState.getCTM().getScaleValue();
+		if (thickness <= 0.0 || length <= 0.0 || scale <= 0.0 ||
+				thickness * scale > MAX_STRIPE_THICKNESS ||
+				thickness > MAX_STRIPE_THICKNESS_TO_LENGTH_RATIO * length) {
+			return null;
+		}
+		double joiningEdgeLength = Math.max(getLineLength(line2), getLineLength(line4));
+		if (joiningEdgeLength > MAX_STRIPE_JOINING_EDGE_FACTOR * thickness) {
+			return null;
+		}
+		consumed[0] = explicitClosingEdge ? 4 : 3;
+		LineChunk stripe = new LineChunk(pageNumber, line2.getCenterX(), line2.getCenterY(),
+				line4.getCenterX(), line4.getCenterY(), thickness, graphicsState.getStrokeColor());
+		return transformLineChunk(stripe, thickness, LineChunk.BUTT_CAP_STYLE);
+	}
+
+	private static LineChunk asLineChunk(Object chunk) {
+		return chunk instanceof LineChunk ? (LineChunk) chunk : null;
+	}
+
+	private static double getLineLength(LineChunk line) {
+		double dx = line.getEndX() - line.getStartX();
+		double dy = line.getEndY() - line.getStartY();
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	/**
+	 * Length of a line along its dominant axis, i.e. ignoring the hairline width of the segment.
+	 */
+	private static double getLineLength(LineChunk line, boolean horizontal) {
+		return horizontal ? Math.abs(line.getEndX() - line.getStartX()) :
+				Math.abs(line.getEndY() - line.getStartY());
 	}
 	
 	private static boolean isHorizontalLine(LineChunk line1, LineChunk line2, LineChunk line3, LineChunk line4) {
