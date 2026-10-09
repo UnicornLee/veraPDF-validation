@@ -177,7 +177,7 @@ public class ChunkParser {
 			}
 			case Operators.G_STROKE: {
 				if (this.graphicsState.isProcessColorOperators()) {
-					processColorSpace(this.graphicsState, resourceHandler, PDDeviceGray.INSTANCE,
+					processColorSpace(this.graphicsState, resourcesHandler, PDDeviceGray.INSTANCE,
 					                  ASAtom.DEVICEGRAY, true);
 					if (isProcessColorSpace(this.graphicsState.getStrokeColorSpace())) {
 						Double strokeColor = getValueOfLastNumber(arguments);
@@ -208,7 +208,7 @@ public class ChunkParser {
 			}
 			case Operators.RG_STROKE: {
 				if (this.graphicsState.isProcessColorOperators()) {
-					processColorSpace(this.graphicsState, resourceHandler, PDDeviceRGB.INSTANCE,
+					processColorSpace(this.graphicsState, resourcesHandler, PDDeviceRGB.INSTANCE,
 					                  ASAtom.DEVICERGB, true);
 					if (isProcessColorSpace(this.graphicsState.getStrokeColorSpace())) {
 						if (arguments.size() == 3 && arguments.get(0).getType().isNumber() &&
@@ -242,7 +242,7 @@ public class ChunkParser {
 			}
 			case Operators.K_STROKE: {
 				if (this.graphicsState.isProcessColorOperators()) {
-					processColorSpace(this.graphicsState, resourceHandler, PDDeviceCMYK.INSTANCE,
+					processColorSpace(this.graphicsState, resourcesHandler, PDDeviceCMYK.INSTANCE,
 					                  ASAtom.DEVICECMYK, true);
 					if (isProcessColorSpace(this.graphicsState.getStrokeColorSpace())) {
 						if (arguments.size() == 4 && arguments.get(0).getType().isNumber() &&
@@ -381,7 +381,7 @@ public class ChunkParser {
 				break;
 			case Operators.CS_STROKE:
 				if (this.graphicsState.isProcessColorOperators()) {
-					this.graphicsState.setStrokeColorSpace(resourceHandler.getColorSpace(getLastCOSName(arguments)));
+					this.graphicsState.setStrokeColorSpace(resourcesHandler.getColorSpace(getLastCOSName(arguments)));
 				}
 				break;
 			case Operators.ET:
@@ -796,7 +796,7 @@ public class ChunkParser {
 				int[] consumed = new int[1];
 				LineChunk stripe = parsingStripeFromLines(i, consumed);
 				if (stripe != null) {
-					processLineChunk(boundingBox, mcid, stripe);
+					processLineChunk(boundingBox, mcid, stripe, operatorIndex);
 					i += consumed[0] - 1;
 					continue;
 				}

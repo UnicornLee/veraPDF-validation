@@ -49,7 +49,7 @@ public class GraphicsState implements Cloneable {
 
 	public GraphicsState(PDResourcesHandler resourcesHandler) {
 		this.fillColorSpace = resourcesHandler.getColorSpace(ASAtom.DEVICEGRAY);
-		this.strokeColorSpace = resourceHandler.getColorSpace(ASAtom.DEVICEGRAY);
+		this.strokeColorSpace = resourcesHandler.getColorSpace(ASAtom.DEVICEGRAY);
 	}
 
 	public PDColorSpace getFillColorSpace() {
