@@ -179,4 +179,12 @@
     </plugins>
   </reporting>
 
+  <distributionManagement>
+    <repository>
+      <id>stock</id>
+      <name>stock release repository</name>
+      <url>https://nexus.valueonline.cn/repository/maven-releases/</url>
+    </repository>
+  </distributionManagement>
+
 </project>
