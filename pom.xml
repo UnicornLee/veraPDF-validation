@@ -75,10 +75,21 @@
   </modules>
 
   <properties>
+    <!-- Original range specs (kept commented for future rebases):
     <verapdf.parser.version>[1.31.0,1.32.0-RC)</verapdf.parser.version>
     <verapdf.pdfmodel.version>[1.31.0,1.32.0-RC)</verapdf.pdfmodel.version>
     <verapdf.library.version>[1.31.0,1.32.0-RC)</verapdf.library.version>
     <verapdf.wcag.algs.version>[1.31.0,1.32.0-RC)</verapdf.wcag.algs.version>
+    -->
+    <!-- Pinned to exact versions so a build cannot drift with whatever the ranges resolve
+         to. Parser is held at 1.31.68 because integration changed the PDNameTreeNode key
+         type from String to COSString, which only exists from this version on; core and
+         verapdf-xmp-core still work unchanged at 1.31.45. The opendataloader-pdf consumer
+         pins parser 1.31.62 and must be raised to 1.31.68 to keep its runtime API in step. -->
+    <verapdf.parser.version>1.31.68</verapdf.parser.version>
+    <verapdf.pdfmodel.version>1.31.14</verapdf.pdfmodel.version>
+    <verapdf.library.version>1.31.45</verapdf.library.version>
+    <verapdf.wcag.algs.version>1.31.33-valueonline</verapdf.wcag.algs.version>
   </properties>
 
   <dependencyManagement>
