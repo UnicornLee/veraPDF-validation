@@ -1397,11 +1397,11 @@ public class ChunkParser {
 		List<StreamInfo> pending = lineArtContainer.getStreamInfos(null);
 		List<LineChunk> lineChunks = lineArtContainer.getLineChunks(null);
 		if (lineChunks != null && !lineChunks.isEmpty()) {
-			for (LineChunk lineChunk : lineChunks) {
-				for (StreamInfo info : pending) {
-					lineChunk.getStreamInfos().add(new StreamInfo(info));
-				}
-			}
+			// Do not attach the region's stream positions to every line chunk: that
+			// materializes lineChunks.size() x pending.size() StreamInfo objects and
+			// exhausted the heap on vector-heavy pages. parseLineArts adds its line
+			// chunks raw and lets the aggregated LineArtChunk carry the positions; the
+			// LineArtChunk built from the bounding boxes below does the same here.
 			artifacts.addAll(lineChunks);
 			lineChunks.clear();
 		}
