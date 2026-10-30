@@ -33,7 +33,7 @@
 
   <groupId>org.verapdf</groupId>
   <artifactId>validation</artifactId>
-  <version>1.31.100-valueonline</version>
+  <version>1.31.101-valueonline</version>
   <packaging>pom</packaging>
 
   <name>veraPDF Validation Project</name>
@@ -89,7 +89,7 @@
     <verapdf.parser.version>1.31.68</verapdf.parser.version>
     <verapdf.pdfmodel.version>1.31.14</verapdf.pdfmodel.version>
     <verapdf.library.version>1.31.45</verapdf.library.version>
-    <verapdf.wcag.algs.version>1.31.33-valueonline</verapdf.wcag.algs.version>
+    <verapdf.wcag.algs.version>1.31.101-valueonline</verapdf.wcag.algs.version>
   </properties>
 
   <dependencyManagement>
