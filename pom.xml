@@ -33,7 +33,7 @@
 
   <groupId>org.verapdf</groupId>
   <artifactId>validation</artifactId>
-  <version>1.31.100-valueonline</version>
+  <version>1.31.101-valueonline</version>
   <packaging>pom</packaging>
 
   <name>veraPDF Validation Project</name>
@@ -81,13 +81,15 @@
     <verapdf.library.version>[1.31.0,1.32.0-RC)</verapdf.library.version>
     <verapdf.wcag.algs.version>[1.31.0,1.32.0-RC)</verapdf.wcag.algs.version>
     -->
-    <!-- Pinned to the exact versions opendataloader-pdf consumes. The [1.31.0,1.32.0-RC)
-         range resolves to the newest available (parser 1.31.68, core/xmp-core 1.31.53),
-         which broke validation-model compilation (COSString vs String) and risked runtime mismatch. -->
-    <verapdf.parser.version>1.31.62</verapdf.parser.version>
+    <!-- Pinned to exact versions so a build cannot drift with whatever the ranges resolve
+         to. Parser is held at 1.31.68 because integration changed the PDNameTreeNode key
+         type from String to COSString, which only exists from this version on; core and
+         verapdf-xmp-core still work unchanged at 1.31.45. The opendataloader-pdf consumer
+         pins parser 1.31.62 and must be raised to 1.31.68 to keep its runtime API in step. -->
+    <verapdf.parser.version>1.31.68</verapdf.parser.version>
     <verapdf.pdfmodel.version>1.31.14</verapdf.pdfmodel.version>
     <verapdf.library.version>1.31.45</verapdf.library.version>
-    <verapdf.wcag.algs.version>1.31.33-valueonline</verapdf.wcag.algs.version>
+    <verapdf.wcag.algs.version>1.31.101-valueonline</verapdf.wcag.algs.version>
   </properties>
 
   <dependencyManagement>

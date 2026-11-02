@@ -878,6 +878,15 @@ public class ChunkParser {
 		lineArtContainer.add(mcid, lineChunk, operatorIndex, xObjectName);
 		if (StaticStorages.getIsIgnoreMCIDs()) {
 			boundingBox.union(lineChunk.getBoundingBox());
+			// The line carries only the operator that painted it. The region's
+			// full list goes once onto the LineArtChunk that processLineArts
+			// builds, whose box holds the line, and a consumer that needs the
+			// whole region finds that chunk through this operator and that box.
+			// Giving every line the full list cost lines x operators objects: one
+			// chart of 7,500 strokes made 56 million and ran out of heap.
+			if (StaticContainers.isDataLoader()) {
+				lineChunk.getStreamInfos().add(new StreamInfo(operatorIndex, xObjectName, null));
+			}
 		}
 	}
 	
@@ -1397,11 +1406,12 @@ public class ChunkParser {
 		List<StreamInfo> pending = lineArtContainer.getStreamInfos(null);
 		List<LineChunk> lineChunks = lineArtContainer.getLineChunks(null);
 		if (lineChunks != null && !lineChunks.isEmpty()) {
-			// Do not attach the region's stream positions to every line chunk: that
-			// materializes lineChunks.size() x pending.size() StreamInfo objects and
-			// exhausted the heap on vector-heavy pages. parseLineArts adds its line
-			// chunks raw and lets the aggregated LineArtChunk carry the positions; the
-			// LineArtChunk built from the bounding boxes below does the same here.
+			// Each line already holds its own operator (processLineChunk) and the line
+			// chunks are added raw, as parseLineArts does. Do not attach the region's
+			// stream positions to every line chunk: that materializes lineChunks.size()
+			// x pending.size() StreamInfo objects and exhausted the heap on vector-heavy
+			// pages. The region's list is attached to the LineArtChunk built from the
+			// bounding boxes below instead, once per box.
 			artifacts.addAll(lineChunks);
 			lineChunks.clear();
 		}

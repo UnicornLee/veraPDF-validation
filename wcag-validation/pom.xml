@@ -28,7 +28,7 @@
     <parent>
         <artifactId>validation</artifactId>
         <groupId>org.verapdf</groupId>
-        <version>1.31.100-valueonline</version>
+        <version>1.31.101-valueonline</version>
     </parent>
 
     <artifactId>wcag-validation</artifactId>
@@ -52,7 +52,7 @@
         <dependency>
             <groupId>org.verapdf</groupId>
             <artifactId>wcag-algorithms</artifactId>
-            <version>1.31.33-valueonline</version>
+            <version>1.31.101-valueonline</version>
         </dependency>
     </dependencies>
 
